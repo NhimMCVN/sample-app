@@ -1,0 +1,93 @@
+# Tên của quy trình (workflow)
+name: Deploy Frontend CI/CD to GitHub Pages
+
+# Kích hoạt quy trình khi có sự kiện
+on:
+  # Chạy khi có push code lên nhánh 'main'
+  push:
+    branches: ["main"]
+  # Chạy thủ công (Manual trigger)
+  workflow_dispatch:
+
+# Định nghĩa các công việc (jobs)
+jobs:
+  # 🎯 Job 1: CI (Continuous Integration) - Build và Test
+  build:
+    # Tên hiển thị trong GitHub Actions UI
+    name: Build & Test Project
+    # Runner sẽ chạy trên máy ảo Ubuntu mới nhất
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        # Action chuẩn để tải mã nguồn về Runner
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        # Action chuẩn để cài đặt Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Phiên bản Node.js bạn muốn dùng
+
+      - name: Install Dependencies
+        # Runner chạy lệnh cài đặt thư viện
+        run: npm install
+
+      - name: Run Tests (CI Check)
+        # Runner chạy lệnh kiểm thử (ví dụ: linting, unit tests)
+        # BƯỚC NÀY SẼ DỪNG WORKFLOW NẾU CÓ LỖI TEST
+        run: npm run test --if-present
+
+      - name: Build Production Files
+        # Runner chạy lệnh build (tạo ra thư mục tĩnh)
+        run: npm run build
+
+      - name: Get Build Folder Path
+        # Tìm thư mục build thực tế (dist, build, out,...)
+        # Thay 'build/' bằng thư mục output của dự án bạn
+        id: get_build_path
+        run: echo "BUILD_PATH=$(find . -maxdepth 1 -type d -name 'build' -print -quit || find . -maxdepth 1 -type d -name 'dist' -print -quit)" >> $GITHUB_OUTPUT
+        
+      # 📦 Lưu sản phẩm đã build (Artifact) để Job sau sử dụng
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build-artifact
+          path: ${{ steps.get_build_path.outputs.BUILD_PATH }} # Sử dụng đường dẫn thư mục build tìm được
+          retention-days: 1 # Lưu Artifact trong 1 ngày
+
+  # 🚀 Job 2: CD (Continuous Deployment) - Triển khai lên GitHub Pages
+  deploy:
+    # Chỉ chạy khi Job 'build' thành công
+    needs: build
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    
+    # Cho phép GitHub Pages sử dụng permissions
+    permissions:
+      contents: write # Cần quyền ghi để đẩy code lên nhánh 'gh-pages'
+      pages: write   # Cần quyền để cập nhật cấu hình Pages
+      id-token: write # Cần quyền để chứng thực
+
+    steps:
+      - name: Download Build Artifact
+        # Tải lại gói sản phẩm đã được build từ Job trước
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build-artifact
+          path: ./temp-deploy # Tải về thư mục tạm
+
+      # Cấu hình GitHub Pages
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      # Triển khai sử dụng action của GitHub
+      - name: Upload artifact to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./temp-deploy/build # Đảm bảo đường dẫn chính xác đến thư mục build bên trong thư mục tải xuống
+
+      # Hoàn tất việc triển khai
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
