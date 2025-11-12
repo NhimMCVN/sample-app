@@ -16,8 +16,7 @@ jobs:
 
   # --- JOB 2: Chạy trên K8s Self-Hosted Runner ---
   build:
-    # ✅ Dòng này đã đúng để chọn runner K8s của bạn
-    runs-on: [self-hosted, linux, example-runnerdeploy] 
+    runs-on: [self-hosted, linux, minhnt-runner] 
     
     steps:
       - uses: actions/checkout@v4
