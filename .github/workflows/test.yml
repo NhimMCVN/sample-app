@@ -16,7 +16,7 @@ jobs:
 
   # --- JOB 2: Chạy trên K8s Self-Hosted Runner ---
   build:
-    runs-on: [self-hosted, linux, minhnt-runner] 
+    runs-on: [self-hosted, linux, test-runner] 
     
     steps:
       - uses: actions/checkout@v4
