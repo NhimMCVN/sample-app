@@ -9,3 +9,4 @@ jobs:
     runs-on: arc-runner-set
     steps:
     - run: echo "🎉 This job uses runner scale set runners!"
+    - run: echo "🎉 This job uses runner scale set runners! 2"
