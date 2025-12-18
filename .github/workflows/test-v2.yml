@@ -4,9 +4,26 @@ on:
     branches: ["main"]
 
 jobs:
-  Explore-GitHub-Actions:
-    # You need to use the INSTALLATION_NAME from the previous step
+  build:
     runs-on: arc-runner-set
+
     steps:
-    - run: echo "🎉 This job uses runner scale set runners!"
-    - run: echo "🎉 This job uses runner scale set runners! 2"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx (remote BuildKit)
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: remote
+          endpoint: tcp://buildkit.buildkit.svc.cluster.local:1234
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: sample-app:latest
+          # cache gha OK nếu runner có quyền
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
