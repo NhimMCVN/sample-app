@@ -13,24 +13,37 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build and Deploy
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
-      
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: npm
-      
-      - run: npm install
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - run: npm run build
-      
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22' # Use a recent Node.js version
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Next.js project with @cloudflare/next-on-pages
+        # The 'npx @cloudflare/next-on-pages' command builds the Next.js app
+        # and adapts it to run on the Cloudflare Workers runtime.
+        run: npx @cloudflare/next-on-pages
+        env:
+          # Pass secrets as environment variables
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # Add any other required environment variables for your build
+
       - name: Deploy to Cloudflare Workers
+        # Uses the official Cloudflare Workers GitHub Action
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: deploy
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # The wrangler action automatically finds the output directory from the previous step
+          # You can specify a working directory if needed:
+          # workingDirectory: .vercel/output/static
