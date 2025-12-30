@@ -1,38 +1,31 @@
-name: Pull Request
+name: Release
 
 on:
-  pull_request:
-    branches:
-      - main
-      - master
-      - dev
-      - staging
-    types: [opened, synchronize, reopened]
+  release:
+    types: [ published ]
 
 permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build with Node.js ${{ matrix.node-version }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22.x, 24.x]
-
+  deployment:
+    name: Release to Cloudflare
+    runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v5
-      
-      - uses: actions/setup-node@v5
+
+      - uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: npm
-      
+          node-version: 24
+          cache: 'npm'
+
       - run: npm install
 
       - run: npm run build
-      
-      - name: Deploy to Cloudflare Workers
+
+      - name: Deploy
         uses: cloudflare/wrangler-action@v3
         with:
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: pages deploy dist --project-name=${{ secrets.CLOUDFLARE_PROJECT_NAME }} --branch=main
